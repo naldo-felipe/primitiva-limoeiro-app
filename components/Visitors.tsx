@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Visitor } from '../types';
 import Modal from './Modal';
 import VisitorForm from './VisitorForm';
+import Pagination from './Pagination';
 import { PencilIcon, TrashIcon, UserPlusIcon, ChatBubbleIcon } from './Icons';
 
 interface VisitorsProps {
@@ -16,6 +16,11 @@ interface VisitorsProps {
 const Visitors: React.FC<VisitorsProps> = ({ visitors, onAdd, onUpdate, onDelete, onConvertToMember }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVisitor, setEditingVisitor] = useState<Visitor | null>(null);
+  const [visitorToDelete, setVisitorToDelete] = useState<string | null>(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const openAddModal = () => {
     setEditingVisitor(null);
@@ -27,9 +32,13 @@ const Visitors: React.FC<VisitorsProps> = ({ visitors, onAdd, onUpdate, onDelete
     setIsModalOpen(true);
   };
   
-  const handleDelete = (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este visitante?')) {
-      onDelete(id);
+  const confirmDelete = () => {
+    if (visitorToDelete) {
+      onDelete(visitorToDelete);
+      setVisitorToDelete(null);
+      if (currentItems.length === 1 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      }
     }
   };
 
@@ -44,13 +53,22 @@ const Visitors: React.FC<VisitorsProps> = ({ visitors, onAdd, onUpdate, onDelete
       alert('Este visitante não possui um número de telefone cadastrado.');
       return;
     }
-    // Remove non-numeric characters and assume it's a Brazilian number
     const sanitizedPhone = phone.replace(/\D/g, '');
     const whatsappUrl = `https://wa.me/55${sanitizedPhone}`;
     window.open(whatsappUrl, '_blank');
   };
 
   const sortedVisitors = [...visitors].sort((a,b) => new Date(b.firstVisitDate).getTime() - new Date(a.firstVisitDate).getTime());
+
+  // Pagination Logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedVisitors.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedVisitors.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
 
   return (
     <div>
@@ -64,7 +82,7 @@ const Visitors: React.FC<VisitorsProps> = ({ visitors, onAdd, onUpdate, onDelete
 
       <div className="bg-card shadow-md rounded-lg overflow-hidden">
         <ul className="divide-y divide-gray-200">
-          {sortedVisitors.length > 0 ? sortedVisitors.map((visitor) => (
+          {currentItems.length > 0 ? currentItems.map((visitor) => (
             <li key={visitor.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
                 <div className="flex-1 mb-4 sm:mb-0">
@@ -79,9 +97,9 @@ const Visitors: React.FC<VisitorsProps> = ({ visitors, onAdd, onUpdate, onDelete
                   <button onClick={() => handleConvert(visitor.id)} className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded-full font-semibold transition-colors">
                     Converter em Membro
                   </button>
-                  <button aria-label={`Editar ${visitor.name}`} onClick={() => openEditModal(visitor)} className="text-primary hover:text-primary-hover"><PencilIcon className="w-5 h-5" /></button>
-                  <button aria-label={`Enviar WhatsApp para ${visitor.name}`} onClick={() => handleSendMessage(visitor.phone)} className="text-green-600 hover:text-green-800" title="Enviar WhatsApp"><ChatBubbleIcon className="w-5 h-5" /></button>
-                  <button aria-label={`Excluir ${visitor.name}`} onClick={() => handleDelete(visitor.id)} className="text-red-600 hover:text-red-800"><TrashIcon className="w-5 h-5" /></button>
+                  <button aria-label={`Editar ${visitor.name}`} onClick={() => openEditModal(visitor)} className="p-2 rounded-lg text-primary hover:bg-blue-100 hover:text-primary-hover"><PencilIcon className="w-5 h-5" /></button>
+                  <button aria-label={`Enviar WhatsApp para ${visitor.name}`} onClick={() => handleSendMessage(visitor.phone)} className="p-2 rounded-lg text-green-600 hover:bg-green-100 hover:text-green-800" title="Enviar WhatsApp"><ChatBubbleIcon className="w-5 h-5" /></button>
+                  <button aria-label={`Excluir ${visitor.name}`} onClick={() => setVisitorToDelete(visitor.id)} className="p-2 rounded-lg text-red-600 hover:bg-red-100 hover:text-red-800"><TrashIcon className="w-5 h-5" /></button>
                 </div>
               </div>
             </li>
@@ -90,6 +108,12 @@ const Visitors: React.FC<VisitorsProps> = ({ visitors, onAdd, onUpdate, onDelete
           )}
         </ul>
       </div>
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
@@ -101,13 +125,37 @@ const Visitors: React.FC<VisitorsProps> = ({ visitors, onAdd, onUpdate, onDelete
               } else {
                 onAdd(data);
               }
-              // VisitorForm handles its own closing logic for new visitors, so only close here for edits.
               if (editingVisitor) {
                 setIsModalOpen(false);
               }
             }}
             onCancel={() => setIsModalOpen(false)}
           />
+        </Modal>
+      )}
+
+      {visitorToDelete && (
+        <Modal onClose={() => setVisitorToDelete(null)}>
+          <div className="p-6 text-center space-y-4">
+            <h2 className="text-xl font-bold text-text-primary">Excluir Visitante</h2>
+            <p className="text-text-secondary">
+              Tem certeza que deseja excluir este visitante? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex justify-center space-x-3 pt-2">
+              <button 
+                onClick={() => setVisitorToDelete(null)} 
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete} 
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

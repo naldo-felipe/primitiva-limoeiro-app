@@ -53,7 +53,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({ requestToEdit, on
           onChange={handleChange}
           disabled={formData.isAnonymous}
           placeholder={formData.isAnonymous ? 'Anônimo' : 'Seu nome ou da família'}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm disabled:bg-gray-100"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm bg-white text-text-primary disabled:bg-gray-100"
         />
       </div>
        <div className="flex items-center">
@@ -79,7 +79,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({ requestToEdit, on
           onChange={handleChange}
           required
           placeholder="Descreva seu pedido aqui..."
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm bg-white text-text-primary"
         />
       </div>
       <div className="flex justify-end space-x-3 pt-4">

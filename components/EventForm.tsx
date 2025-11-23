@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Event } from '../types';
 import { CameraIcon, TrashIcon } from './Icons';
@@ -87,7 +88,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
           value={formData.name}
           onChange={handleChange}
           required
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-white text-text-primary"
         />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -100,7 +101,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
             value={formData.date}
             onChange={handleChange}
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-white text-text-primary"
           />
         </div>
         <div>
@@ -112,7 +113,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
             value={formData.time}
             onChange={handleChange}
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-white text-text-primary"
           />
         </div>
       </div>
@@ -138,7 +139,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
             tabIndex={0}
             role="button"
             aria-label="Adicionar imagem do evento"
-            className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+            className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors bg-white"
           >
             <div className="space-y-1 text-center">
               <CameraIcon className="mx-auto h-12 w-12 text-gray-400" /> 
@@ -167,7 +168,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSave, onCancel }) => {
           rows={3}
           value={formData.description}
           onChange={handleChange}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-white text-text-primary"
         />
       </div>
       <div className="flex justify-end space-x-3 pt-4">

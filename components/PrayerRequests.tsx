@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { PrayerRequest } from '../types';
 import Modal from './Modal';
@@ -14,6 +15,7 @@ interface PrayerRequestsProps {
 const PrayerRequests: React.FC<PrayerRequestsProps> = ({ requests, onAdd, onUpdate, onDelete }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<PrayerRequest | null>(null);
+  const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
   
   const sortedRequests = [...requests].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -27,10 +29,11 @@ const PrayerRequests: React.FC<PrayerRequestsProps> = ({ requests, onAdd, onUpda
     setIsModalOpen(true);
   };
   
-  const handleDelete = (id: string) => {
-      if (window.confirm('Tem certeza que deseja excluir este pedido de oração?')) {
-          onDelete(id);
-      }
+  const confirmDelete = () => {
+    if (requestToDelete) {
+      onDelete(requestToDelete);
+      setRequestToDelete(null);
+    }
   };
 
   return (
@@ -54,8 +57,8 @@ const PrayerRequests: React.FC<PrayerRequestsProps> = ({ requests, onAdd, onUpda
                         <span>{new Date(req.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <button aria-label="Editar pedido de oração" onClick={() => openEditModal(req)} className="text-primary hover:text-primary-hover"><PencilIcon className="w-4 h-4" /></button>
-                        <button aria-label="Excluir pedido de oração" onClick={() => handleDelete(req.id)} className="text-red-600 hover:text-red-800"><TrashIcon className="w-4 h-4" /></button>
+                        <button aria-label="Editar pedido de oração" onClick={() => openEditModal(req)} className="p-2 rounded-lg text-primary hover:bg-blue-100 hover:text-primary-hover"><PencilIcon className="w-4 h-4" /></button>
+                        <button aria-label="Excluir pedido de oração" onClick={() => setRequestToDelete(req.id)} className="p-2 rounded-lg text-red-600 hover:bg-red-100 hover:text-red-800"><TrashIcon className="w-4 h-4" /></button>
                     </div>
                  </div>
              </div>
@@ -81,6 +84,31 @@ const PrayerRequests: React.FC<PrayerRequestsProps> = ({ requests, onAdd, onUpda
                 }}
                 onCancel={() => setIsModalOpen(false)}
             />
+        </Modal>
+      )}
+
+      {requestToDelete && (
+        <Modal onClose={() => setRequestToDelete(null)}>
+          <div className="p-6 text-center space-y-4">
+            <h2 className="text-xl font-bold text-text-primary">Excluir Pedido</h2>
+            <p className="text-text-secondary">
+              Tem certeza que deseja excluir este pedido de oração? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex justify-center space-x-3 pt-2">
+              <button 
+                onClick={() => setRequestToDelete(null)} 
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete} 
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Member, Visitor, Event, PrayerRequest, Role } from './types';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { auth } from "./firebaseConfig";
+import * as dbService from "./services/firebase";
 
 // Components
 import Header from './components/Header';
@@ -9,134 +13,100 @@ import Visitors from './components/Visitors';
 import Events from './components/Events';
 import Program from './components/Program';
 import PrayerRequests from './components/PrayerRequests';
+import DatabaseManager from './components/DatabaseManager';
 import Modal from './components/Modal';
 import { FacebookIcon, InstagramIcon, YouTubeIcon } from './components/Icons';
 
-
-// --- Initial Data ---
-const getInitialDate = (dayOffset: number) => {
-    const date = new Date();
-    date.setDate(date.getDate() + dayOffset);
-    return date.toISOString().split('T')[0];
-};
-
-const initialMembersData: Member[] = [
-  { id: 'm1', name: 'João da Silva', role: 'Pastor', status: 'Ativo', phone: '11987654321', birthDate: '1980-05-15' },
-  { id: 'm2', name: 'Maria Oliveira', role: 'Diaconisa', status: 'Ativo', phone: '11912345678', birthDate: '1985-10-20' },
-  { id: 'm3', name: 'Carlos Pereira', role: 'Membro', status: 'Inativo', phone: '11999998888', birthDate: '1992-03-30' },
-];
-
-const initialVisitorsData: Visitor[] = [
-  { id: 'v1', name: 'Ana Costa', firstVisitDate: getInitialDate(-20), phone: '21988776655', notes: 'Veio com a família.' },
-  { id: 'v2', name: 'Pedro Martins', firstVisitDate: getInitialDate(-5), phone: '31977665544', notes: 'Interessado no grupo de jovens.' },
-];
-
-const initialEventsData: Event[] = [
-  { id: 'e1', name: 'Culto de Domingo', date: getInitialDate(7 - new Date().getDay()), time: '10:00', description: 'Nosso culto semanal de celebração e adoração.' },
-  { id: 'e2', name: 'Estudo Bíblico', date: getInitialDate(2), time: '19:30', description: 'Estudo aprofundado do livro de Gênesis.' },
-];
-
-const initialPrayerRequestsData: PrayerRequest[] = [
-  { id: 'p1', name: 'Família Souza', request: 'Oração pela saúde do nosso filho.', isAnonymous: false, date: getInitialDate(-2) },
-  { id: 'p2', request: 'Peço oração por uma oportunidade de emprego.', isAnonymous: true, date: getInitialDate(-1) },
-];
-
-const initialProgramContent = `
-**Domingo:**
-- 10:00 - Culto de Adoração
-- 18:00 - Culto da Família
-
-**Quarta-feira:**
-- 19:30 - Noite de Oração e Estudo
-
-**Sexta-feira:**
-- 20:00 - Reunião de Jovens
-`.trim();
-
-
-// --- Custom hook for localStorage ---
-const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.error(error);
-      return initialValue;
-    }
-  });
-
-  const setValue: React.Dispatch<React.SetStateAction<T>> = (value) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  return [storedValue, setValue];
-};
-
-// --- Main App Compon vient ---
+// --- Main App Component ---
 const App: React.FC = () => {
-  const [role, setRole] = useLocalStorage<Role>('app-role', 'public');
+  const [role, setRole] = useState<Role>('public');
   const [view, setView] = useState('dashboard');
   
-  const [members, setMembers] = useLocalStorage<Member[]>('app-members', initialMembersData);
-  const [visitors, setVisitors] = useLocalStorage<Visitor[]>('app-visitors', initialVisitorsData);
-  const [events, setEvents] = useLocalStorage<Event[]>('app-events', initialEventsData);
-  const [prayerRequests, setPrayerRequests] = useLocalStorage<PrayerRequest[]>('app-prayer-requests', initialPrayerRequestsData);
-  const [programContent, setProgramContent] = useLocalStorage<string>('app-program', initialProgramContent);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([]);
+  const [programContent, setProgramContent] = useState<string>('');
 
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  // --- Auth & Data Listeners ---
+  useEffect(() => {
+    // Auth Listener
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setRole('admin');
+      } else {
+        setRole('public');
+      }
+    });
+
+    // Data Listeners (Real-time sync)
+    const unsubMembers = dbService.subscribeToMembers(setMembers);
+    const unsubVisitors = dbService.subscribeToVisitors(setVisitors);
+    const unsubEvents = dbService.subscribeToEvents(setEvents);
+    const unsubPrayer = dbService.subscribeToPrayerRequests(setPrayerRequests);
+    const unsubProgram = dbService.subscribeToProgram(setProgramContent);
+
+    return () => {
+      unsubscribeAuth();
+      unsubMembers();
+      unsubVisitors();
+      unsubEvents();
+      unsubPrayer();
+      unsubProgram();
+    };
+  }, []);
+
 
   const handleAdminLogin = () => {
-    setPasswordInput('');
-    setPasswordError('');
+    setAuthError('');
     setIsPasswordModalOpen(true);
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === "admin123") {
-      setRole('admin');
-      setView('dashboard');
+    try {
+      await signInWithEmailAndPassword(auth, emailInput, passwordInput);
       setIsPasswordModalOpen(false);
-    } else {
-      setPasswordError("Senha incorreta!");
+      setEmailInput('');
+      setPasswordInput('');
+    } catch (error: any) {
+      console.error(error);
+      setAuthError("Erro ao entrar. Verifique email e senha.");
     }
   };
 
-  const handleLogout = () => {
-    setRole('public');
+  const handleLogout = async () => {
+    await signOut(auth);
     setView('dashboard');
   };
 
-  // --- CRUD Handlers ---
-  const handleAddMember = (member: Omit<Member, 'id'>) => {
-    setMembers(prev => [...prev, { ...member, id: new Date().toISOString() }]);
+  // --- CRUD Handlers (Connected to Firebase) ---
+  const handleAddMember = async (member: Omit<Member, 'id'>) => {
+    try { await dbService.addMember(member); } catch(e) { console.error(e); alert("Erro ao salvar"); }
   };
-  const handleUpdateMember = (updatedMember: Member) => {
-    setMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
+  const handleUpdateMember = async (updatedMember: Member) => {
+    try { await dbService.updateMember(updatedMember); } catch(e) { console.error(e); alert("Erro ao atualizar"); }
   };
-  const handleDeleteMember = (id: string) => {
-    setMembers(prev => prev.filter(m => m.id !== id));
+  const handleDeleteMember = async (id: string) => {
+    try { await dbService.deleteMember(id); } catch(e) { console.error(e); alert("Erro ao deletar"); }
   };
 
-  const handleAddVisitor = (visitor: Omit<Visitor, 'id'>) => {
-    setVisitors(prev => [...prev, { ...visitor, id: new Date().toISOString() }]);
+  const handleAddVisitor = async (visitor: Omit<Visitor, 'id'>) => {
+    try { await dbService.addVisitor(visitor); } catch(e) { console.error(e); alert("Erro ao salvar"); }
   };
-  const handleUpdateVisitor = (updatedVisitor: Visitor) => {
-    setVisitors(prev => prev.map(v => v.id === updatedVisitor.id ? updatedVisitor : v));
+  const handleUpdateVisitor = async (updatedVisitor: Visitor) => {
+    try { await dbService.updateVisitor(updatedVisitor); } catch(e) { console.error(e); alert("Erro ao atualizar"); }
   };
-  const handleDeleteVisitor = (id: string) => {
-    setVisitors(prev => prev.filter(v => v.id !== id));
+  const handleDeleteVisitor = async (id: string) => {
+    try { await dbService.deleteVisitor(id); } catch(e) { console.error(e); alert("Erro ao deletar"); }
   };
-  const handleConvertToMember = (visitorId: string) => {
+
+  const handleConvertToMember = async (visitorId: string) => {
     const visitor = visitors.find(v => v.id === visitorId);
     if (visitor) {
       const newMember: Omit<Member, 'id'> = {
@@ -146,36 +116,67 @@ const App: React.FC = () => {
         status: 'Ativo',
         birthDate: '',
       };
-      handleAddMember(newMember);
-      handleDeleteVisitor(visitorId);
+      await handleAddMember(newMember);
+      await handleDeleteVisitor(visitorId);
       alert(`${visitor.name} foi convertido(a) para membro!`);
       setView('members');
     }
   };
   
-  const handleAddEvent = (event: Omit<Event, 'id'>) => {
-    setEvents(prev => [...prev, { ...event, id: new Date().toISOString() }]);
+  const handleAddEvent = async (event: Omit<Event, 'id'>) => {
+    try { await dbService.addEvent(event); } catch(e) { console.error(e); alert("Erro ao salvar"); }
   };
-  const handleUpdateEvent = (updatedEvent: Event) => {
-    setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+  const handleUpdateEvent = async (updatedEvent: Event) => {
+    try { await dbService.updateEvent(updatedEvent); } catch(e) { console.error(e); alert("Erro ao atualizar"); }
   };
-  const handleDeleteEvent = (id: string) => {
-    setEvents(prev => prev.filter(e => e.id !== id));
+  const handleDeleteEvent = async (id: string) => {
+    try { await dbService.deleteEvent(id); } catch(e) { console.error(e); alert("Erro ao deletar"); }
   };
   
-  const handleAddPrayerRequest = (request: Omit<PrayerRequest, 'id' | 'date'>) => {
-    const newRequest = { ...request, id: new Date().toISOString(), date: new Date().toISOString().split('T')[0] };
-    setPrayerRequests(prev => [newRequest, ...prev]);
+  const handleAddPrayerRequest = async (request: Omit<PrayerRequest, 'id' | 'date'>) => {
+    const newRequest = { ...request, date: new Date().toISOString().split('T')[0] };
+    try { await dbService.addPrayerRequest(newRequest); } catch(e) { console.error(e); alert("Erro ao salvar"); }
   };
-  const handleUpdatePrayerRequest = (updatedRequest: PrayerRequest) => {
-      setPrayerRequests(prev => prev.map(r => r.id === updatedRequest.id ? updatedRequest : r));
+  const handleUpdatePrayerRequest = async (updatedRequest: PrayerRequest) => {
+    try { await dbService.updatePrayerRequest(updatedRequest); } catch(e) { console.error(e); alert("Erro ao atualizar"); }
   };
-  const handleDeletePrayerRequest = (id: string) => {
-      setPrayerRequests(prev => prev.filter(r => r.id !== id));
+  const handleDeletePrayerRequest = async (id: string) => {
+    try { await dbService.deletePrayerRequest(id); } catch(e) { console.error(e); alert("Erro ao deletar"); }
   };
 
-  const handleSaveProgram = (newContent: string) => {
-    setProgramContent(newContent);
+  const handleSaveProgram = async (newContent: string) => {
+    try { await dbService.saveProgram(newContent); } catch(e) { console.error(e); alert("Erro ao salvar programa"); }
+  };
+
+  // --- Database Handlers ---
+  const handleExportData = () => {
+    const data = {
+        members,
+        visitors,
+        events,
+        prayerRequests,
+        programContent,
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        source: 'firebase-backup'
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ipf-limoeiro-cloud-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportData = (file: File) => {
+    alert("A importação direta não está disponível na versão Cloud por segurança. Contate o suporte técnico.");
+  };
+
+  const handleResetData = () => {
+    alert("O reset global está desativado na versão Cloud para evitar perda de dados.");
   };
 
   // --- Render Logic ---
@@ -208,6 +209,9 @@ const App: React.FC = () => {
         return <Program content={programContent} onSave={handleSaveProgram} role={role} />;
       case 'prayer':
         return <PrayerRequests requests={prayerRequests} onAdd={handleAddPrayerRequest} onUpdate={handleUpdatePrayerRequest} onDelete={handleDeletePrayerRequest} />;
+      case 'database':
+        if (role !== 'admin') return <div className="text-center p-8 bg-card rounded-lg shadow-md"><p>Acesso restrito à administração.</p></div>;
+        return <DatabaseManager onExport={handleExportData} onImport={handleImportData} onReset={handleResetData} />;
       default:
         return <Dashboard members={members} visitors={visitors} events={events} prayerRequestsCount={prayerRequests.length} setView={setView} role={role} />;
     }
@@ -227,6 +231,7 @@ const App: React.FC = () => {
                <div className="h-6 w-px bg-gray-300 mx-1 sm:mx-2 hidden sm:block"></div>
                <NavButton currentView={view} targetView="members" text="Membros" />
                <NavButton currentView={view} targetView="visitors" text="Visitantes" />
+               <NavButton currentView={view} targetView="database" text="Dados" />
              </>
            )}
         </nav>
@@ -255,24 +260,38 @@ const App: React.FC = () => {
 
         {isPasswordModalOpen && (
             <Modal onClose={() => setIsPasswordModalOpen(false)}>
-            <form onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
-                <h2 className="text-xl font-bold text-text-primary">Acesso de Administrador</h2>
+            <form onSubmit={handleAuthSubmit} className="p-6 space-y-4">
+                <h2 className="text-xl font-bold text-text-primary">Acesso Administrativo</h2>
+                
+                {authError && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">{authError}</div>}
+
+                <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-text-secondary">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-white text-text-primary"
+                        placeholder="admin@igreja.com"
+                        required
+                    />
+                </div>
                 <div>
                 <label htmlFor="password" className="block text-sm font-medium text-text-secondary">Senha</label>
                 <input
                     type="password"
-                    name="password"
                     id="password"
                     value={passwordInput}
                     onChange={(e) => {
-                    setPasswordInput(e.target.value);
-                    if (passwordError) setPasswordError('');
+                      setPasswordInput(e.target.value);
+                      if (authError) setAuthError('');
                     }}
-                    autoFocus
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-white text-text-primary"
+                    required
                 />
                 </div>
-                {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+                
                 <div className="flex justify-end space-x-3 pt-4">
                 <button type="button" onClick={() => setIsPasswordModalOpen(false)} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300">Cancelar</button>
                 <button type="submit" className="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-primary-hover">Entrar</button>

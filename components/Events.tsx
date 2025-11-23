@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Event, Role } from '../types';
 import Modal from './Modal';
@@ -15,6 +16,7 @@ interface EventsProps {
 const Events: React.FC<EventsProps> = ({ events, onAdd, onUpdate, onDelete, role }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
 
   const openAddModal = () => {
     setEditingEvent(null);
@@ -26,9 +28,10 @@ const Events: React.FC<EventsProps> = ({ events, onAdd, onUpdate, onDelete, role
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este evento?')) {
-      onDelete(id);
+  const confirmDelete = () => {
+    if (eventToDelete) {
+      onDelete(eventToDelete);
+      setEventToDelete(null);
     }
   };
   
@@ -62,8 +65,8 @@ const Events: React.FC<EventsProps> = ({ events, onAdd, onUpdate, onDelete, role
             </div>
             {role === 'admin' && (
               <div className="p-4 bg-gray-50 flex justify-end space-x-2">
-                <button aria-label={`Editar evento ${event.name}`} onClick={() => openEditModal(event)} className="text-primary hover:text-primary-hover"><PencilIcon className="w-5 h-5" /></button>
-                <button aria-label={`Excluir evento ${event.name}`} onClick={() => handleDelete(event.id)} className="text-red-600 hover:text-red-800"><TrashIcon className="w-5 h-5" /></button>
+                <button aria-label={`Editar evento ${event.name}`} onClick={() => openEditModal(event)} className="p-2 rounded-lg text-primary hover:bg-blue-100 hover:text-primary-hover"><PencilIcon className="w-5 h-5" /></button>
+                <button aria-label={`Excluir evento ${event.name}`} onClick={() => setEventToDelete(event.id)} className="p-2 rounded-lg text-red-600 hover:bg-red-100 hover:text-red-800"><TrashIcon className="w-5 h-5" /></button>
               </div>
             )}
           </div>
@@ -86,6 +89,31 @@ const Events: React.FC<EventsProps> = ({ events, onAdd, onUpdate, onDelete, role
             }}
             onCancel={() => setIsModalOpen(false)}
           />
+        </Modal>
+      )}
+
+      {eventToDelete && (
+        <Modal onClose={() => setEventToDelete(null)}>
+          <div className="p-6 text-center space-y-4">
+            <h2 className="text-xl font-bold text-text-primary">Excluir Evento</h2>
+            <p className="text-text-secondary">
+              Tem certeza que deseja excluir este evento? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex justify-center space-x-3 pt-2">
+              <button 
+                onClick={() => setEventToDelete(null)} 
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete} 
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

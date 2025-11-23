@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Visitor } from '../types';
 import { generateWelcomeMessage } from '../services/geminiService';
@@ -93,7 +92,7 @@ const VisitorForm: React.FC<VisitorFormProps> = ({ visitor, onSave, onCancel }) 
           value={formData.name}
           onChange={handleChange}
           required
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm bg-white text-text-primary"
         />
       </div>
       <div>
@@ -105,7 +104,7 @@ const VisitorForm: React.FC<VisitorFormProps> = ({ visitor, onSave, onCancel }) 
           value={formData.firstVisitDate}
           onChange={handleChange}
           required
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm bg-white text-text-primary"
         />
       </div>
       <div>
@@ -116,7 +115,7 @@ const VisitorForm: React.FC<VisitorFormProps> = ({ visitor, onSave, onCancel }) 
           id="phone"
           value={formData.phone}
           onChange={handleChange}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm bg-white text-text-primary"
         />
       </div>
       <div>
@@ -127,7 +126,7 @@ const VisitorForm: React.FC<VisitorFormProps> = ({ visitor, onSave, onCancel }) 
           rows={3}
           value={formData.notes}
           onChange={handleChange}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-secondary focus:border-secondary sm:text-sm bg-white text-text-primary"
         />
       </div>
       <div className="flex justify-end space-x-3 pt-4">
